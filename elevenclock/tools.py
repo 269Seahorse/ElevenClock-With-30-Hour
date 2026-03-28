@@ -176,7 +176,26 @@ def evaluate_expression_string(d, s: str, offset=0):
             return match.group(0)  # Return the original text if not a valid expression
 
     time_formated = re.sub(r'\(([^)]*\{sec([+-]\d*)\})\)', evaluate_match_time, s)  # a valid expression is of (*{sec+/-N})
-    time_formated = datetime.datetime.fromtimestamp(d-offset).strftime(time_formated)
+
+    # 30-hour clock (30時制): hours 0-5 become 24-29, date uses previous day
+    dt_now = datetime.datetime.fromtimestamp(d-offset)
+    if dt_now.hour < 6:
+        h30 = dt_now.hour + 24
+        # Replace hour format tokens with literal values BEFORE strftime
+        # so strftime only resolves date tokens (%d, %A, %Y, etc.) using yesterday
+        fmt = time_formated
+        fmt = fmt.replace('%#H', str(h30))    # no-leading-zero hour (must come before %H)
+        fmt = fmt.replace('%H', f'{h30:02d}') # zero-padded hour
+        fmt = fmt.replace('%#I', str(h30))    # 12-hour no-pad (treat as 30h too)
+        fmt = fmt.replace('%I', f'{h30:02d}') # 12-hour padded
+        fmt = fmt.replace('%p', '')           # AM/PM meaningless in 30h mode
+        dt_display = dt_now - datetime.timedelta(days=1)
+        # minutes, seconds, and date all resolve from dt_display
+        # (minutes/seconds are same as dt_now since only the day shifted)
+        time_formated = dt_display.strftime(fmt)
+    else:
+        time_formated = dt_now.strftime(time_formated)
+
     time_formated = re.sub(r'\{([^}]*)\}', evaluate_match, time_formated)  # a valid expression is of {*}
     return time_formated
 
