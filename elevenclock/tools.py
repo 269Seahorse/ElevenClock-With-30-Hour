@@ -179,7 +179,7 @@ def evaluate_expression_string(d, s: str, offset=0):
 
     # 30-hour clock (30時制): hours 0-5 become 24-29, date uses previous day
     dt_now = datetime.datetime.fromtimestamp(d-offset)
-    if dt_now.hour < 6:
+    if getSettings("Enable30HourClock") and dt_now.hour < 6:
         h30 = dt_now.hour + 24
         # Replace hour format tokens with literal values BEFORE strftime
         # so strftime only resolves date tokens (%d, %A, %Y, etc.) using yesterday
